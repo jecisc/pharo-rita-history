@@ -10,13 +10,13 @@ Class {
 }
 
 { #category : 'styling' }
-RiSpMorphicConfiguration >> styleSheet [ 
-	^ super styleSheet, (SpStyleSTONReader fromString: '
+RiSpMorphicConfiguration >> styleSheet [
+	^ styleSheet := super styleSheet , (SpStyleVariableSTONReader fromString: '
 	.application [
 		.ritaNarrow [
 			Geometry { #width: 20 }
 			],
-		.ritaTable [ 
+		.ritaTable [
 			Container { #rowHeight: 25 }
 			]
 	]')

@@ -16,7 +16,8 @@ Class {
 		'nextJumpToNextButton',
 		'nextJumpToPreviousButton',
 		'avatarByEmail',
-		'presenterWidthInPercent'
+		'presenterWidthInPercent',
+		'scopeDropDown'
 	],
 	#category : 'Rita-UI-Spec2-Repository',
 	#package : 'Rita-UI',
@@ -119,6 +120,14 @@ RiRepositoryCommitsPresenter >> avatarFor: email [
 			  hash := (SHA256 hashMessage: email asByteArray) hex.
 			  avatarUrl := 'https://www.gravatar.com/avatar/' , hash , '?d=identicon&s=200'.
 			  (ImageReadWriter formFromStream: (ZnClient new get: avatarUrl) readStream) scaledToSize: 16 @ 16 ]
+]
+
+{ #category : 'initialization' }
+RiRepositoryCommitsPresenter >> connectPresenters [
+
+	super connectPresenters.
+
+	scopeDropDown whenSelectedItemChangedDo: [ :scope | scope ifNotNil: [ self selectScope: scope ] ]
 ]
 
 { #category : 'initialization' }
@@ -240,6 +249,10 @@ RiRepositoryCommitsPresenter >> contextMenuForTable [
 RiRepositoryCommitsPresenter >> defaultLayout [
 
 	^ SpBoxLayout newVertical
+		  add: scopeDropDown
+		  expand: false
+		  fill: false
+		  padding: 5;
 		  add: table;
 		  add: actionBar expand: false;
 		  yourself
@@ -316,7 +329,16 @@ RiRepositoryCommitsPresenter >> initializeActionBar [
 
 { #category : 'initialization' }
 RiRepositoryCommitsPresenter >> initializePresenters [
+
+	scopeDropDown := self newDropList.
+
 	self initializeTable.
+
+	scopeDropDown
+		display: [ :scope | scope label ];
+		displayIcon: [ :scope | self iconNamed: scope iconName ];
+		help: 'Restrict the displayed commits to a branch or a tag.'.
+
 	self initializeActionBar
 ]
 
@@ -385,7 +407,7 @@ RiRepositoryCommitsPresenter >> refreshOnAvatarsUpdate [
 	self defer: [table adapter widget refresh]
 ]
 
-{ #category : 'updating' }
+{ #category : 'refreshing' }
 RiRepositoryCommitsPresenter >> refreshOnModelUpdate [
 
 	self isBuilt ifFalse: [ ^ self ].
@@ -395,6 +417,8 @@ RiRepositoryCommitsPresenter >> refreshOnModelUpdate [
 	model at: #elementsInSearchResult put: #(  ).
 	rowBuilder refresh.
 
+	self refreshOnScopeDropDown.
+
 	table items: self riRepository elements.
 	self flag: #todo. "Maybe that if we had an element already selected we should keep the same selection?"
 	table selectFirst
@@ -403,6 +427,14 @@ RiRepositoryCommitsPresenter >> refreshOnModelUpdate [
 { #category : 'accessing' }
 RiRepositoryCommitsPresenter >> refreshOnPinsUpdate [
 	self refreshOnAvatarsUpdate
+]
+
+{ #category : 'refreshing' }
+RiRepositoryCommitsPresenter >> refreshOnScopeDropDown [
+
+	scopeDropDown
+		items: self riScopes;
+		selectIndex: 1
 ]
 
 { #category : 'search' }
@@ -422,6 +454,18 @@ RiRepositoryCommitsPresenter >> riRepository [
 ]
 
 { #category : 'accessing' }
+RiRepositoryCommitsPresenter >> riScopes [
+	"Answer the scopes the user can browse: the whole local clone, then every branch and every tag of my repository.
+	Each scope is a RiScope that knows its own label and icon."
+
+	^ Array streamContents: [ :stream |
+			  stream nextPut: RiLocalCloneScope new.
+			  self riRepository elementMarks
+				  select: [ :mark | mark isBranchMark or: [ mark isTagMark ] ]
+				  thenDo: [ :mark | stream nextPut: (RiScope forMark: mark) ] ]
+]
+
+{ #category : 'accessing' }
 RiRepositoryCommitsPresenter >> rowHeightForHiedra [
 	^ table adapter widget rowHeight floor
 ]
@@ -435,6 +479,13 @@ RiRepositoryCommitsPresenter >> searchResultIncudes: aRiElement [
 { #category : 'actions' }
 RiRepositoryCommitsPresenter >> selectRiElement: aRiElement [
 	table selectItem: aRiElement scrollToSelection: true
+]
+
+{ #category : 'actions' }
+RiRepositoryCommitsPresenter >> selectScope: aScope [
+	"Scoping the commits to a scope is not implemented yet, I only acknowledge the selection."
+
+	self inform: 'Scoping the history to ' , aScope label , ' will come soon.'
 ]
 
 { #category : 'initialization' }
