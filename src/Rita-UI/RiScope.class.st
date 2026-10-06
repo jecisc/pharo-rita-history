@@ -18,6 +18,19 @@ RiScope class >> forMark: aRiMark [
 ]
 
 { #category : 'accessing' }
+RiScope >> elementsIn: aRiRepository [
+	"Answer the elements of aRiRepository that belong to my scope, in the repository order (newest first).
+	The local clone scope answers every element; a branch or tag scope answers the commits of its tip and their ancestors."
+
+	| mark scopeElements |
+	mark := self mark ifNil: [ ^ aRiRepository elements ].
+	
+	scopeElements := IdentitySet new.
+	mark element withAllAncestorsDo: [ :each | scopeElements add: each ].
+	^ aRiRepository elements select: [ :each | scopeElements includes: each ]
+]
+
+{ #category : 'accessing' }
 RiScope >> iconName [
 
 	^ self subclassResponsibility

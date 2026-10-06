@@ -483,9 +483,10 @@ RiRepositoryCommitsPresenter >> selectRiElement: aRiElement [
 
 { #category : 'actions' }
 RiRepositoryCommitsPresenter >> selectScope: aScope [
-	"Scoping the commits to a scope is not implemented yet, I only acknowledge the selection."
+	"Fill the table with the commits that belong to aScope."
 
-	self inform: 'Scoping the history to ' , aScope label , ' will come soon.'
+	table items: (aScope elementsIn: self riRepository).
+	table selectFirst
 ]
 
 { #category : 'initialization' }
