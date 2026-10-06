@@ -136,6 +136,13 @@ RiPullRequest >> iceGitHubPullRequest: anIceGitHubPullRequest [
 	iceGitHubPullRequest := anIceGitHubPullRequest
 ]
 
+{ #category : 'initialization' }
+RiPullRequest >> initialize [
+
+	super initialize.
+	fetched := false
+]
+
 { #category : 'accessing' }
 RiPullRequest >> label [
 

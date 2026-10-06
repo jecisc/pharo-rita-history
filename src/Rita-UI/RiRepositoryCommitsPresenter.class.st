@@ -17,7 +17,8 @@ Class {
 		'nextJumpToPreviousButton',
 		'avatarByEmail',
 		'presenterWidthInPercent',
-		'scopeDropDown'
+		'scopeDropDown',
+		'pullRequests'
 	],
 	#category : 'Rita-UI-Spec2-Repository',
 	#package : 'Rita-UI',
@@ -39,6 +40,8 @@ RiRepositoryCommitsPresenter >> actionCleanSearchResults [
 
 { #category : 'actions' }
 RiRepositoryCommitsPresenter >> actionForceRefresh [
+
+	self invalidatePullRequests.
 	self riRepository process.
 	self refreshOnModelUpdate
 ]
@@ -258,6 +261,23 @@ RiRepositoryCommitsPresenter >> defaultLayout [
 		  yourself
 ]
 
+{ #category : 'private' }
+RiRepositoryCommitsPresenter >> fetchPullRequests [
+
+	| remotes api result |
+	result := OrderedCollection new.
+	remotes := self riRepository iceRepository remotes select: [ :aRemote | aRemote host = 'github.com' ].
+
+	api := IceGitHubAPI new.
+	remotes do: [ :remote |
+			[
+				result addAll: ((api getPullRequests: remote owner project: remote projectName) all collect: [ :json |
+						 RiPullRequest from: (IceGitHubPullRequest fromJSON: json) repository: self riRepository remote: remote ]) ]
+				on: Error
+				do: [ ] ].
+	^ result
+]
+
 { #category : 'search' }
 RiRepositoryCommitsPresenter >> hasSearchResults [
 	^ (model at: #elementsInSearchResult) notEmpty
@@ -380,10 +400,16 @@ RiRepositoryCommitsPresenter >> initializeTable [
 	table whenBuiltDo: [ :ann | self refreshOnModelUpdate ]
 ]
 
+{ #category : 'private' }
+RiRepositoryCommitsPresenter >> invalidatePullRequests [
+
+	pullRequests := nil
+]
+
 { #category : 'pin/unpin commits' }
 RiRepositoryCommitsPresenter >> isPinned: aRiElement [
-	^ (model at: #pinDiffModels)
-		anySatisfy: [ :each | each sourceRiElement = aRiElement ]
+
+	^ (model at: #pinDiffModels ifAbsent: [ OrderedCollection new ]) anySatisfy: [ :each | each sourceRiElement = aRiElement ]
 ]
 
 { #category : 'accessing' }
@@ -400,6 +426,13 @@ RiRepositoryCommitsPresenter >> printStringForMarksOf: aRiElement [
 			aRiElement marks
 				do: [ :mark | stream << mark description ]
 				separatedBy: [ stream << ', ' ] ]
+]
+
+{ #category : 'accessing' }
+RiRepositoryCommitsPresenter >> pullRequests [
+	"Answer the open pull requests of my repository's GitHub remote, fetched lazily and cached."
+
+	^ pullRequests ifNil: [ pullRequests := self fetchPullRequests ]
 ]
 
 { #category : 'accessing' }
@@ -455,14 +488,15 @@ RiRepositoryCommitsPresenter >> riRepository [
 
 { #category : 'accessing' }
 RiRepositoryCommitsPresenter >> riScopes [
-	"Answer the scopes the user can browse: the whole local clone, then every branch and every tag of my repository.
+	"Answer the scopes the user can browse: the whole local clone, then every branch and every tag, then one scope per open pull request.
 	Each scope is a RiScope that knows its own label and icon."
 
 	^ Array streamContents: [ :stream |
 			  stream nextPut: RiLocalCloneScope new.
 			  self riRepository elementMarks
 				  select: [ :mark | mark isBranchMark or: [ mark isTagMark ] ]
-				  thenDo: [ :mark | stream nextPut: (RiScope forMark: mark) ] ]
+				  thenDo: [ :mark | stream nextPut: (RiScope forMark: mark) ].
+			  self pullRequests do: [ :pullRequest | stream nextPut: (RiPullRequestScope pullRequest: pullRequest) ] ]
 ]
 
 { #category : 'accessing' }
