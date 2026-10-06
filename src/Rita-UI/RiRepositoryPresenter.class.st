@@ -129,16 +129,9 @@ RiRepositoryPresenter >> selectElements: aCollectionOfRiElement [
 
 	| selectedRiAbstractElement |
 	aCollectionOfRiElement ifEmpty: [ ^ self ].
-	selectedRiAbstractElement := self riElementFor: (self selectionInRepositoryOrder: aCollectionOfRiElement).
+	selectedRiAbstractElement := self riElementFor: aCollectionOfRiElement.
 	notebook removeAll.
 	(selectedRiAbstractElement diffModelsWithPins: (model at: #pinDiffModels)) do: [ :diffModel | self addPageFor: diffModel to: selectedRiAbstractElement ].
 	notebook pages ifNotEmpty: [ notebook selectPage: notebook pages first ].
 	commitDetailsWidget text: selectedRiAbstractElement commitText
-]
-
-{ #category : 'private' }
-RiRepositoryPresenter >> selectionInRepositoryOrder: aCollectionOfRiElement [
-	"Answer the selected elements ordered the way the repository lists them (newest first). The table delivers the selection in click order, but a composite trusts the caller to pass it in repository order."
-
-	^ self repository elements select: [ :element | aCollectionOfRiElement includes: element ]
 ]

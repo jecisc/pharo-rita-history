@@ -47,7 +47,7 @@ RiPullRequest >> baseSHA [
 
 { #category : 'accessing' }
 RiPullRequest >> commits [
-	"Answer the RiCommits of my range (merge base excluded), newest first, with ancestors and children wired among them."
+	"Answer the RiCommits of my range (merge base excluded), newest first, with ancestors and children wired among them, and the merge base wired as the boundary ancestor of the oldest commit."
 
 	| walk riCommits riCommitByIceCommit |
 	self fetchHead.
@@ -61,6 +61,7 @@ RiPullRequest >> commits [
 	walk uptoCommit: self mergeBaseCommit.
 
 	riCommitByIceCommit := Dictionary new.
+	riCommitByIceCommit at: self mergeBaseCommit put: (RiCommit repository: self riRepository iceGitCommit: self mergeBaseCommit).
 	riCommits := OrderedCollection new.
 	
 	"First we create all ri commits"

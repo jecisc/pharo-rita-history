@@ -519,13 +519,17 @@ RiRepositoryCommitsPresenter >> selectRiElement: aRiElement [
 RiRepositoryCommitsPresenter >> selectScope: aScope [
 	"Fill the table with the commits that belong to aScope."
 
-	table items: (aScope elementsIn: self riRepository).
+	| elements |
+	elements := aScope elementsIn: self riRepository.
+	table items: elements.
+	rowBuilder refreshForElements: elements.
 	table selectFirst
 ]
 
 { #category : 'initialization' }
 RiRepositoryCommitsPresenter >> whenSelectionChangedDo: aBlock [
-	"The block receives all the selected elements, in the order the table reports them (click order)."
+	"The block receives all the selected elements, in the order the table lists them (newest first)."
 
-	table whenSelectionChangedDo: [ :selection | selection selectedItems ifNotEmpty: [ :items | aBlock value: items ] ]
+	table whenSelectionChangedDo: [ :selection |
+		selection selectedItems ifNotEmpty: [ :items | aBlock value: (table items select: [ :element | items includes: element ]) ] ]
 ]

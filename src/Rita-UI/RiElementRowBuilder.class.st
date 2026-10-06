@@ -26,9 +26,10 @@ RiElementRowBuilder >> hiedraMorphAt: item [
 
 	self flag: #todo. "Fix this async problem in other way"
 
-	^ (hiedraColumnController notNil and: [ hiedraColumnController isReady ])
-		ifFalse: [ ^ Morph new ]
-		ifTrue: [ hiedraColumnController cellMorphAtValue: item ]
+	^ (hiedraColumnController isNotNil and: [
+		   hiedraColumnController ruler isNotNil and: [ hiedraColumnController isReady and: [ hiedraColumnController ruler valueIndices includesKey: item ] ] ])
+		  ifFalse: [ Morph new ]
+		  ifTrue: [ hiedraColumnController cellMorphAtValue: item ]
 ]
 
 { #category : 'mark morph building' }
@@ -115,7 +116,10 @@ RiElementRowBuilder >> pinMorphsFor: aRiElement [
 ]
 
 { #category : 'refreshing' }
-RiElementRowBuilder >> process: aRiRepository rowHeight: aHeight [
+RiElementRowBuilder >> processElements: aCollectionOfRiElement rowHeight: aHeight [
+
+	| elementsSet |
+	elementsSet := aCollectionOfRiElement asIdentitySet.
 
 	hiedraColumnController := HiColumnController new.
 	hiedraColumnController renderer
@@ -128,18 +132,22 @@ RiElementRowBuilder >> process: aRiRepository rowHeight: aHeight [
 	self setUniformColors.
 
 	"Create a new ruler model with current table elements"
-	hiedraColumnController ruler: (HiRulerBuilder
-		newRulerValues: aRiRepository elements
-		linksBlock: [ :each | each ancestors ]).
+	hiedraColumnController ruler:
+		(HiRulerBuilder newRulerValues: aCollectionOfRiElement linksBlock: [ :element | element ancestors select: [ :ancestor | elementsSet includes: ancestor ] ]).
 
-	hiedraColumnController reset.
-
+	hiedraColumnController reset
 ]
 
-{ #category : 'accessing' }
+{ #category : 'refreshing' }
 RiElementRowBuilder >> refresh [
 
-	[ self process: repositoryPresenter riRepository rowHeight: repositoryPresenter rowHeightForHiedra ] future
+	self refreshForElements: repositoryPresenter riRepository elements
+]
+
+{ #category : 'refreshing' }
+RiElementRowBuilder >> refreshForElements: aCollectionOfRiElement [
+
+	[ self processElements: aCollectionOfRiElement rowHeight: repositoryPresenter rowHeightForHiedra ] future
 		onSuccessDo: [ :_ | repositoryPresenter refreshOnAvatarsUpdate ];
 		onFailureDo: [ :error | repositoryPresenter reportWarning: error ]
 ]
