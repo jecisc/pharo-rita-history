@@ -2,8 +2,7 @@ Class {
 	#name : 'RiRepositoryListPresenter',
 	#superclass : 'RiPresenter',
 	#instVars : [
-		'table',
-		'blockForOpenPullRequests'
+		'table'
 	],
 	#category : 'Rita-UI-Spec2-Repository',
 	#package : 'Rita-UI',
@@ -20,26 +19,6 @@ RiRepositoryListPresenter >> actionFetch [
 	self refreshOnModelUpdate
 ]
 
-{ #category : 'accessing' }
-RiRepositoryListPresenter >> blockForOpenPullRequests: aBlock [
-	blockForOpenPullRequests:= aBlock
-]
-
-{ #category : 'initialization' }
-RiRepositoryListPresenter >> contextMenuForPullRequestsFor: aRiRepository [
-	| menu |
-	menu := self newMenu.
-	aRiRepository iceRepository remotes
-		select: [ :each | each host = 'github.com' ]
-		thenDo: [ :each | 
-			menu
-				addItem: [ :item | 
-					item
-						name: each name;
-						action: [ blockForOpenPullRequests value: each ] ] ].
-	^ menu
-]
-
 { #category : 'initialization' }
 RiRepositoryListPresenter >> contextMenuForTable [
 
@@ -52,10 +31,6 @@ RiRepositoryListPresenter >> contextMenuForTable [
 			item
 				name: 'Open Repository';
 				action: [ table doActivateAtIndex: table selection selectedIndex ] ].
-	menu addItem: [ :item |
-			item
-				name: 'View Pull Requests';
-				subMenu: (self contextMenuForPullRequestsFor: selected) ].
 	menu addItem: [ :item |
 			item
 				name: 'Open folder';
