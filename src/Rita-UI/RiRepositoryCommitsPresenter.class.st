@@ -499,11 +499,6 @@ RiRepositoryCommitsPresenter >> riScopes [
 			  self pullRequests do: [ :pullRequest | stream nextPut: (RiPullRequestScope pullRequest: pullRequest) ] ]
 ]
 
-{ #category : 'accessing' }
-RiRepositoryCommitsPresenter >> rowHeightForHiedra [
-	^ table adapter widget rowHeight floor
-]
-
 { #category : 'search' }
 RiRepositoryCommitsPresenter >> searchResultIncudes: aRiElement [
 	^ aRiElement isUncommited not

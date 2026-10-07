@@ -116,24 +116,24 @@ RiElementRowBuilder >> pinMorphsFor: aRiElement [
 ]
 
 { #category : 'refreshing' }
-RiElementRowBuilder >> processElements: aCollectionOfRiElement rowHeight: aHeight [
+RiElementRowBuilder >> processElements: aCollectionOfRiElement [
 
 	| elementsSet |
 	elementsSet := aCollectionOfRiElement asIdentitySet.
 
 	hiedraColumnController := HiColumnController new.
 	hiedraColumnController renderer
-		rowHeight: aHeight;
+		rowHeight: RiSpMorphicConfiguration commitsRowHeight;
 		nodeRadius: 1.5;
 		nodeBorderWidth: 3.0;
 		arrowSize: 0;
 		nodeConnectionOffset: 3;
-		cellWidth: 6.75.
+		cellWidth: 7.
 	self setUniformColors.
 
 	"Create a new ruler model with current table elements"
 	hiedraColumnController ruler:
-		(HiRulerBuilder newRulerValues: aCollectionOfRiElement linksBlock: [ :element | element ancestors select: [ :ancestor | elementsSet includes: ancestor ] ]).
+		(HiRulerBuilder newRulerValues: aCollectionOfRiElement linksBlock: [ :each | each ancestors select: [ :ancestor | elementsSet includes: ancestor ] ]).
 
 	hiedraColumnController reset
 ]
@@ -147,7 +147,7 @@ RiElementRowBuilder >> refresh [
 { #category : 'refreshing' }
 RiElementRowBuilder >> refreshForElements: aCollectionOfRiElement [
 
-	[ self processElements: aCollectionOfRiElement rowHeight: repositoryPresenter rowHeightForHiedra ] future
+	[ self processElements: aCollectionOfRiElement ] future
 		onSuccessDo: [ :_ | repositoryPresenter refreshOnAvatarsUpdate ];
 		onFailureDo: [ :error | repositoryPresenter reportWarning: error ]
 ]
