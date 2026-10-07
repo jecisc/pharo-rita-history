@@ -104,6 +104,8 @@ RiElementRowBuilder >> morphAt: item [
 		(self hiedraMorphAt: item).
 		'   ' asMorph } , (self pinMorphsFor: item) , (self markMorphsAt: item) do: [ :each | row addItemLeft: each ].
 
+	"We need a fixed size for the row so that Spec does not add margins"
+	row extent: row minExtent x @ RiSpMorphicConfiguration commitsRowHeight.
 
 	^ row
 ]
@@ -124,12 +126,12 @@ RiElementRowBuilder >> processElements: aCollectionOfRiElement [
 	hiedraColumnController := HiColumnController new.
 	hiedraColumnController renderer
 		rowHeight: RiSpMorphicConfiguration commitsRowHeight;
-		nodeRadius: 1.5;
+		nodeRadius: 2;
 		nodeBorderWidth: 3.0;
-		arrowSize: 0;
-		nodeConnectionOffset: 3;
-		cellWidth: 7.
-	self setUniformColors.
+		arrowSize: 0; "No arrow"
+		cellWidth: 15.
+
+	self setMultipleColors.
 
 	"Create a new ruler model with current table elements"
 	hiedraColumnController ruler:
@@ -175,15 +177,6 @@ RiElementRowBuilder >> setMultipleColors [
 		collect: [ :each | each mixed: 0.75 with: Smalltalk ui theme textColor ]).
 		
 
-]
-
-{ #category : 'accessing' }
-RiElementRowBuilder >> setUniformColors [
-
-	hiedraColumnController renderer useUniformColorStrategy.
-	hiedraColumnController renderer colorStrategy
-		linkColor: Smalltalk ui theme textColor;
-		nodeColor: Smalltalk ui theme textColor
 ]
 
 { #category : 'accessing' }

@@ -394,6 +394,7 @@ RiRepositoryCommitsPresenter >> initializeTable [
 				 width: 40;
 				 yourself);
 		addColumn: (SpImageTableColumn new
+				 displayAlignment: [ :each | SpColumnAlignment left ];
 				 evaluated: [ :item | rowBuilder morphAt: item ];
 				 yourself).
 
