@@ -190,23 +190,23 @@ RiRepository >> processCommits [
 
 { #category : 'accessing' }
 RiRepository >> processImageMark [
+	"Add an IMAGE mark to the commit my working copy is based on, or to an uncommitted working copy when it is modified.
+	When the reference commit is unknown (e.g. it is not present in the local clone), there is nothing to mark."
 
 	| aRiCommit |
-	iceRepository hasLoadedPackages ifFalse: [ ^self ].
+	iceRepository hasLoadedPackages ifFalse: [ ^ self ].
 
-	aRiCommit := elementByCommit at: iceRepository workingCopy referenceCommit.
-	
-	iceRepository workingCopy isModified
-		ifTrue: [
+	aRiCommit := elementByCommit at: iceRepository workingCopy referenceCommit ifAbsent: [ ^ self ].
+
+	iceRepository workingCopy isModified ifTrue: [
 			| tmp |
 			tmp := RiUncommitedWorkingCopy new referenceCommit: aRiCommit.
-			elements
-				add: tmp
-				before: aRiCommit.
+			elements add: tmp before: aRiCommit.
 			aRiCommit := tmp ].
 
-	aRiCommit addMark: (RiImageMark new element: aRiCommit; yourself).
-
+	aRiCommit addMark: (RiImageMark new
+			 element: aRiCommit;
+			 yourself)
 ]
 
 { #category : 'private' }
@@ -250,26 +250,27 @@ RiRepository >> processTagMark: anIceCommitish [
 
 { #category : 'accessing' }
 RiRepository >> processWorkdirMark [
+	"Add a WORKDIR mark to the commit of my HEAD, or to an uncommitted working copy when there are changes in the working directory.
+	When the HEAD commit is unknown (e.g. it is not present in the local clone), there is nothing to mark."
 
 	| aRiCommit diff |
-	iceRepository headCommit isNoCommit ifTrue: [ ^self ].
+	iceRepository headCommit isNoCommit ifTrue: [ ^ self ].
 
-	aRiCommit := elementByCommit at: iceRepository headCommit.
-	
+	aRiCommit := elementByCommit at: iceRepository headCommit ifAbsent: [ ^ self ].
+
 	diff := (LGitDiff of: iceRepository repositoryHandle)
-		diffIndexToWorkDir;
-		yourself.
+		        diffIndexToWorkDir;
+		        yourself.
 
 	diff numberOfDeltas > 0 ifTrue: [
-		| tmp |
-		tmp := RiUncommitedWorkingCopy new referenceCommit: aRiCommit.
-		elements
-			add: tmp
-			before: aRiCommit.
-		aRiCommit := tmp ].
+			| tmp |
+			tmp := RiUncommitedWorkingCopy new referenceCommit: aRiCommit.
+			elements add: tmp before: aRiCommit.
+			aRiCommit := tmp ].
 
-	aRiCommit addMark: (RiWorkdirMark new element: aRiCommit; yourself).
-
+	aRiCommit addMark: (RiWorkdirMark new
+			 element: aRiCommit;
+			 yourself)
 ]
 
 { #category : 'processing' }

@@ -171,3 +171,22 @@ RiRepositoryModelTest >> testSimple [
 	self assert: repository elementMarks size equals: 2.
 
 ]
+
+{ #category : 'tests' }
+RiRepositoryModelTest >> testUnknownReferenceCommit [
+	"Opening a repository whose working copy reference commit is unknown (e.g. not present in the local clone yet) should not raise, and no IMAGE mark is added (while the WORKDIR mark is)."
+
+	| unknownCommit |
+	self commitWithMessage: '1'.
+	self repository workingCopy basicAddPackage: (IcePackage named: 'Rita-Model' repository: self repository).
+	unknownCommit := IceUnknownCommit new
+		                 repository: self repository;
+		                 id: 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
+		                 yourself.
+	self repository workingCopy referenceCommit: unknownCommit.
+
+	self shouldnt: [ self buildRepository ] raise: KeyNotFound.
+
+	self assert: (repository elements noneSatisfy: [ :each | each marks anySatisfy: [ :mark | mark isKindOf: RiImageMark ] ]).
+	self assert: (repository elements anySatisfy: [ :each | each marks anySatisfy: [ :mark | mark isKindOf: RiWorkdirMark ] ])
+]
