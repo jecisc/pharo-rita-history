@@ -6,7 +6,7 @@ I display information such as the commit SHA, the author and the date, with the 
 The commits can be restricted to a scope selected in my scope drop down:
 - the local clone (the whole history),
 - a branch,
-- a tag,
+- a tag (a release: the commits from the previous release, exclusive, up to the tag, inclusive),
 - a pull request (the commits of its range, from its merge base to its head).
 
 Selecting a scope fills my table with the elements of that scope (see `RiScope>>elementsIn:`).
@@ -399,7 +399,7 @@ RiRepositoryCommitsPresenter >> initializePresenters [
 	self initializeTable.
 
 	scopeDropDown
-		display: #label;
+		display: [ :scope | scope label ];
 		displayIcon: [ :scope | self iconNamed: scope iconName ];
 		help: 'Restrict the displayed commits to a branch or a tag.'.
 

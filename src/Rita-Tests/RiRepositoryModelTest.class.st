@@ -80,6 +80,47 @@ RiRepositoryModelTest >> testAllChildren [
 ]
 
 { #category : 'tests' }
+RiRepositoryModelTest >> testElementsFromDownTo [
+	"
+	input:
+
+	4 		B
+	|
+	3
+	|
+	2 		A
+	|
+	1
+
+	"
+
+	| c1 c2 c3 c4 e1 e2 e3 e4 |
+	c1 := self commitWithMessage: '1'.
+	c2 := self commitWithMessage: '2'.
+	self createTag: 'A'.
+	c3 := self commitWithMessage: '3'.
+	c4 := self commitWithMessage: '4'.
+	self createTag: 'B'.
+
+	self buildRepository.
+
+	e1 := repository elementByCommit at: c1.
+	e2 := repository elementByCommit at: c2.
+	e3 := repository elementByCommit at: c3.
+	e4 := repository elementByCommit at: c4.
+
+	self assertCollection: (repository elementsFrom: e4 downTo: e2) hasSameElements: {
+			e3.
+			e4 }.
+	self assertCollection: (repository elementsFrom: e4 downTo: nil) hasSameElements: {
+			e1.
+			e2.
+			e3.
+			e4 }.
+	self assertCollection: (repository elementsFrom: e2 downTo: e1) hasSameElements: { e2 }
+]
+
+{ #category : 'tests' }
 RiRepositoryModelTest >> testMerge [
 	"
 	input:
@@ -118,6 +159,38 @@ RiRepositoryModelTest >> testMerge [
 	self assert: e2 children equals: { e3 }.
 	self assert: e3 children isEmpty.
 
+]
+
+{ #category : 'tests' }
+RiRepositoryModelTest >> testPreviousReleaseElement [
+	"
+	input:
+
+	4 		B
+	|
+	3
+	|
+	2 		A
+	|
+	1
+
+	"
+
+	| c2 c4 e2 e4 |
+	self commitWithMessage: '1'.
+	c2 := self commitWithMessage: '2'.
+	self createTag: 'A'.
+	self commitWithMessage: '3'.
+	c4 := self commitWithMessage: '4'.
+	self createTag: 'B'.
+
+	self buildRepository.
+
+	e2 := repository elementByCommit at: c2.
+	e4 := repository elementByCommit at: c4.
+
+	self assert: (repository previousReleaseElementOf: e4) equals: e2.
+	self assert: (repository previousReleaseElementOf: e2) isNil
 ]
 
 { #category : 'tests' }

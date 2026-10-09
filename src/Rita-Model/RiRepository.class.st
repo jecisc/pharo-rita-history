@@ -25,6 +25,22 @@ RiRepository class >> iceRepository: anIceLibgitRepository [
 ]
 
 { #category : 'accessing' }
+RiRepository >> ancestorsOrSelfOf: aRiElement [
+	"Answer an IdentitySet holding aRiElement and all its ancestors, visiting each element once."
+
+	| result pending |
+	result := IdentitySet new.
+	pending := OrderedCollection with: aRiElement.
+	[ pending isEmpty ] whileFalse: [
+			| element |
+			element := pending removeLast.
+			(result includes: element) ifFalse: [
+					result add: element.
+					pending addAll: element ancestors ] ].
+	^ result
+]
+
+{ #category : 'accessing' }
 RiRepository >> commitAtSha: hexString [
 	^ self commits detect: [ :each | each id = hexString ]
 ]
@@ -52,6 +68,17 @@ RiRepository >> elementMarks [
 { #category : 'accessing' }
 RiRepository >> elements [
 	^ elements
+]
+
+{ #category : 'accessing' }
+RiRepository >> elementsFrom: aRiElement downTo: aBoundRiElementOrNil [
+	"Answer my elements that are aRiElement or one of its ancestors, in my order (newest first).
+	When aBoundRiElementOrNil is not nil, also exclude it and its ancestors, so I answer the range strictly above the bound, up to aRiElement included."
+
+	| scopeElements |
+	scopeElements := self ancestorsOrSelfOf: aRiElement.
+	aBoundRiElementOrNil ifNotNil: [ :bound | scopeElements removeAll: (self ancestorsOrSelfOf: bound) ].
+	^ self elements select: [ :element | scopeElements includes: element ]
 ]
 
 { #category : 'processing' }
@@ -99,6 +126,20 @@ RiRepository >> newIceCommitWalk [
 { #category : 'actions' }
 RiRepository >> openInNativeBrowser [
 	iceRepository location openInNativeBrowser
+]
+
+{ #category : 'accessing' }
+RiRepository >> previousReleaseElementOf: aRiElement [
+	"Answer the previous release of aRiElement: the newest of its ancestors that is the commit of one of my tags (a release), or nil if there is none."
+
+	| tagTipElements ancestors |
+	tagTipElements := IdentitySet withAll: (self elementMarks
+			                   select: #isTagMark
+			                   thenCollect: #element).
+	ancestors := self ancestorsOrSelfOf: aRiElement.
+	^ self elements
+		  detect: [ :element | element ~~ aRiElement and: [ (ancestors includes: element) and: [ tagTipElements includes: element ] ] ]
+		  ifNone: [ nil ]
 ]
 
 { #category : 'printing' }
