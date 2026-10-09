@@ -1,7 +1,17 @@
 "
-I am a presenter displaying the list of commits (and their info) in the form of a tree for a `RiRepository`.
+I am a presenter displaying the list of commits (and their info) for a `RiRepository`.
 
-I'll display informations such as the commit SHA, the author and the date. 
+I display information such as the commit SHA, the author and the date, with the git tree (Hiedra) and the marks (branches, tags, pins and working copy) in the last column.
+
+The commits can be restricted to a scope selected in my scope drop down:
+- the local clone (the whole history),
+- a branch,
+- a tag,
+- a pull request (the commits of its range, from its merge base to its head).
+
+Selecting a scope fills my table with the elements of that scope (see `RiScope>>elementsIn:`).
+
+The local clone, branch and tag scopes come directly from the repository marks. Pull requests require the GitHub API and a slow network request, so I do not fetch them by default: the button at the right of the scope drop down fetches them in the background and adds one scope per open pull request. That button is only enabled for repositories with a GitHub remote, and it is disabled once the pull requests are fetched.
 
 I also have a toolbar with some actions such as a search, previous, next...
 "
@@ -18,7 +28,9 @@ Class {
 		'avatarByEmail',
 		'presenterWidthInPercent',
 		'scopeDropDown',
-		'pullRequests'
+		'pullRequests',
+		'fetchPullRequestsButton',
+		'fetchingPullRequests'
 	],
 	#category : 'Rita-UI-Spec2-Repository',
 	#package : 'Rita-UI',
@@ -36,6 +48,25 @@ RiRepositoryCommitsPresenter >> actionAddPin: aRiElement [
 RiRepositoryCommitsPresenter >> actionCleanSearchResults [
 	model at: #elementsInSearchResult put: #().
 	self refreshOnSearchResultsUpdate
+]
+
+{ #category : 'actions' }
+RiRepositoryCommitsPresenter >> actionFetchPullRequests [
+	"Fetch the pull requests in the background, and add them to my scope drop down when done.
+	I disable the button so the fetch is not started twice, and it stays disabled once the pull requests are loaded."
+
+	fetchingPullRequests := true.
+	fetchPullRequestsButton enabled: false.
+	[ self fetchPullRequests ] future
+		onSuccessDo: [ :fetchedPullRequests |
+				fetchingPullRequests := false.
+				pullRequests := fetchedPullRequests.
+				self defer: [ self refreshOnScopeDropDown ] ];
+		onFailureDo: [ :error |
+				fetchingPullRequests := false.
+				self defer: [
+							self refreshOnFetchPullRequestsButton.
+							self reportWarning: error ] ]
 ]
 
 { #category : 'actions' }
@@ -252,7 +283,10 @@ RiRepositoryCommitsPresenter >> contextMenuForTable [
 RiRepositoryCommitsPresenter >> defaultLayout [
 
 	^ SpBoxLayout newVertical
-		  add: scopeDropDown
+		  add: (SpBoxLayout newHorizontal
+				   add: scopeDropDown;
+				   add: fetchPullRequestsButton expand: false fill: false;
+				   yourself)
 		  expand: false
 		  fill: false
 		  padding: 5;
@@ -270,12 +304,20 @@ RiRepositoryCommitsPresenter >> fetchPullRequests [
 
 	api := IceGitHubAPI new.
 	remotes do: [ :remote |
-			[
-				result addAll: ((api getPullRequests: remote owner project: remote projectName) all collect: [ :json |
-						 RiPullRequest from: (IceGitHubPullRequest fromJSON: json) repository: self riRepository remote: remote ]) ]
-				on: Error
-				do: [ ] ].
+			result addAll: ((api getPullRequests: remote owner project: remote projectName) all collect: [ :json |
+					 RiPullRequest from: (IceGitHubPullRequest fromJSON: json) repository: self riRepository remote: remote ]) ].
 	^ result
+]
+
+{ #category : 'accessing' }
+RiRepositoryCommitsPresenter >> fetchPullRequestsButton [
+	^ fetchPullRequestsButton
+]
+
+{ #category : 'testing' }
+RiRepositoryCommitsPresenter >> hasGitHubRemote [
+
+	^ self riRepository iceRepository remotes anySatisfy: [ :each | each host = 'github.com' ]
 ]
 
 { #category : 'search' }
@@ -289,7 +331,8 @@ RiRepositoryCommitsPresenter >> initialize [
 	super initialize.
 
 	avatarByEmail := Dictionary new.
-	presenterWidthInPercent := 15
+	presenterWidthInPercent := 15.
+	fetchingPullRequests := false
 ]
 
 { #category : 'initialization' }
@@ -351,13 +394,20 @@ RiRepositoryCommitsPresenter >> initializeActionBar [
 RiRepositoryCommitsPresenter >> initializePresenters [
 
 	scopeDropDown := self newDropList.
+	fetchPullRequestsButton := self newButton.
 
 	self initializeTable.
 
 	scopeDropDown
-		display: [ :scope | scope label ];
+		display: #label;
 		displayIcon: [ :scope | self iconNamed: scope iconName ];
 		help: 'Restrict the displayed commits to a branch or a tag.'.
+
+	fetchPullRequestsButton
+		iconName: #down;
+		help: 'Pull requests are not fetched by default because it is a slow network request. Click to fetch them.';
+		action: [ self actionFetchPullRequests ];
+		addStyle: 'ritaNarrow'.
 
 	self initializeActionBar
 ]
@@ -431,14 +481,30 @@ RiRepositoryCommitsPresenter >> printStringForMarksOf: aRiElement [
 
 { #category : 'accessing' }
 RiRepositoryCommitsPresenter >> pullRequests [
-	"Answer the open pull requests of my repository's GitHub remote, fetched lazily and cached."
+	"Answer the pull requests fetched so far, or nil if they were not fetched yet.
+	They are not fetched by default: the user fetches them with the dedicated button."
 
-	^ pullRequests ifNil: [ pullRequests := self fetchPullRequests ]
+	^ pullRequests
 ]
 
 { #category : 'accessing' }
 RiRepositoryCommitsPresenter >> refreshOnAvatarsUpdate [
 	self defer: [table adapter widget refresh]
+]
+
+{ #category : 'refreshing' }
+RiRepositoryCommitsPresenter >> refreshOnFetchPullRequestsButton [
+	"Update the state of my fetch-pull-requests button: it is only usable for GitHub repositories, and only until the pull requests are fetched."
+
+	self hasGitHubRemote
+		ifTrue: [
+				fetchPullRequestsButton
+					help: 'Pull requests are not fetched by default because it is a slow network request. Click to fetch them.';
+					enabled: (pullRequests isNil and: [ fetchingPullRequests not ]) ]
+		ifFalse: [
+				fetchPullRequestsButton
+					help: 'Fetching pull requests is only supported for repositories with a GitHub remote.';
+					enabled: false ]
 ]
 
 { #category : 'refreshing' }
@@ -465,10 +531,14 @@ RiRepositoryCommitsPresenter >> refreshOnPinsUpdate [
 
 { #category : 'refreshing' }
 RiRepositoryCommitsPresenter >> refreshOnScopeDropDown [
+	"Fill my scope drop down with the scopes of my repository.
+	I keep the current selection when I can: pull request scopes are appended at the end, so the other indices do not shift."
 
-	scopeDropDown
-		items: self riScopes;
-		selectIndex: 1
+	| indexToSelect |
+	self refreshOnFetchPullRequestsButton.
+	indexToSelect := scopeDropDown selectedIndex max: 1.
+	scopeDropDown items: self riScopes.
+	scopeDropDown selectIndex: (indexToSelect min: scopeDropDown items size)
 ]
 
 { #category : 'search' }
@@ -489,7 +559,8 @@ RiRepositoryCommitsPresenter >> riRepository [
 
 { #category : 'accessing' }
 RiRepositoryCommitsPresenter >> riScopes [
-	"Answer the scopes the user can browse: the whole local clone, then every branch and every tag, then one scope per open pull request.
+	"Answer the scopes the user can browse: the whole local clone, then every branch and every tag, then one scope per fetched pull request.
+	Pull requests are not fetched by default: the user fetches them with the dedicated button.
 	Each scope is a RiScope that knows its own label and icon."
 
 	^ Array streamContents: [ :stream |
@@ -497,7 +568,12 @@ RiRepositoryCommitsPresenter >> riScopes [
 			  self riRepository elementMarks
 				  select: [ :mark | mark isBranchMark or: [ mark isTagMark ] ]
 				  thenDo: [ :mark | stream nextPut: (RiScope forMark: mark) ].
-			  self pullRequests do: [ :pullRequest | stream nextPut: (RiPullRequestScope pullRequest: pullRequest) ] ]
+			  self pullRequests ifNotNil: [ :prs | prs do: [ :pullRequest | stream nextPut: (RiPullRequestScope pullRequest: pullRequest) ] ] ]
+]
+
+{ #category : 'accessing' }
+RiRepositoryCommitsPresenter >> scopeDropDown [
+	^ scopeDropDown
 ]
 
 { #category : 'search' }

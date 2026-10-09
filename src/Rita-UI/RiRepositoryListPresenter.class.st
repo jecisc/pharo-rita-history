@@ -30,7 +30,7 @@ RiRepositoryListPresenter >> contextMenuForTable [
 	menu addItem: [ :item |
 			item
 				name: 'Open Repository';
-				action: [ table doActivateAtIndex: table selection selectedIndex ] ].
+				action: [ [table doActivateAtIndex: table selection selectedIndex] spy ] ].
 	menu addItem: [ :item |
 			item
 				name: 'Open folder';
