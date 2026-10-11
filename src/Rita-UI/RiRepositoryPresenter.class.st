@@ -61,7 +61,10 @@ RiRepositoryPresenter >> diffPresenterFor: aRiDiffModel to: targetRiElement [
 
 	| iceDiff expandedNodes |
 	iceDiff := aRiDiffModel iceDiffFrom: targetRiElement.
-	expandedNodes := OrderedCollection streamContents: [ :stream | iceDiff tree withAllChildrenDo: [ :each | stream nextPut: each ] ].
+
+	"Using an identity set because we will look a lot in this collection and elements are slow to compare since they also compare their children. Identity comparison is much much faster.
+	If you need to change this one day, do a profiling on big repositories with a commit updating a lot of elements at once (like the merge of a big pull request)."
+	expandedNodes := IdentitySet withAll: (Array streamContents: [ :stream | iceDiff tree withAllChildrenDo: [ :each | stream nextPut: each ] ]).
 
 	^ (self instantiate: RiFullDiffPresenter)
 		  model: (model copy
