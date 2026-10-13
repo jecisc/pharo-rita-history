@@ -87,7 +87,7 @@ RitaBrowserPresenter >> initializePresenters [
 { #category : 'private' }
 RitaBrowserPresenter >> newHomePage [
 
-	^ SpNotebookPage title: 'Home' icon: (self iconNamed: #homeIcon) provider: [
+	^ SpNotebookPage title: 'Home' icon: (self iconNamed: #home) provider: [
 			  RiRepositoryListPresenter new
 				  model: model repositories;
 				  whenOpeningRepositoryDo: [ :aRiRepository | self openRepository: aRiRepository ];
