@@ -219,14 +219,14 @@ RiRepository >> processCommits [
 	elements := OrderedCollection new.
 	elementByCommit := Dictionary new.
 
-	iceRepository head isUnbornBranch ifTrue: [ ^self ].
+	iceRepository head isUnbornBranch ifTrue: [ ^ self ].
 
-	self newIceCommitWalk commitsDo: [:each |
-		| newCommit |
-		newCommit := RiCommit repository: self iceGitCommit: each.
-		elements add: newCommit.
-		elementByCommit at: each put: newCommit ].
-
+	self withIceCommitWalkDo: [ :walk |
+			walk commitsDo: [ :each |
+					| newCommit |
+					newCommit := RiCommit repository: self iceGitCommit: each.
+					elements add: newCommit.
+					elementByCommit at: each put: newCommit ] ]
 ]
 
 { #category : 'accessing' }
@@ -334,20 +334,27 @@ RiRepository >> selectLibgitCommitsWithChangesAt: aPath [
 	diffOptions pathspec: (LGitStringArray withAll: { aPath }).
 
 	results := OrderedCollection new.
-	self newIceCommitWalk commitsDo: [:each |
-		| tree commit |
-		commit := each libgitCommit.
-		tree := commit tree.
-		commit numberOfParents = 0
-			ifTrue: [
-				(tree matchesPathSpec: pathSpec)
-					ifTrue: [ results add: (self commitAtSha: commit id hexString) ] ]
-			ifFalse: [
-				| parent diff |
-				parent := commit parentAt: 1.
-				diff := tree diffTo: parent tree options: diffOptions. 
-				diff numberOfDeltas > 0 ifTrue: [
-					results add: (self commitAtSha: commit id hexString) ] ] ].
+	self withIceCommitWalkDo: [ :walk |
+			walk commitsDo: [ :each |
+					| tree commit |
+					commit := each libgitCommit.
+					tree := commit tree.
+					commit numberOfParents = 0
+						ifTrue: [ (tree matchesPathSpec: pathSpec) ifTrue: [ results add: (self commitAtSha: commit id hexString) ] ]
+						ifFalse: [
+								| parent diff |
+								parent := commit parentAt: 1.
+								diff := tree diffTo: parent tree options: diffOptions.
+								diff numberOfDeltas > 0 ifTrue: [ results add: (self commitAtSha: commit id hexString) ] ] ] ].
 
 	^ results
+]
+
+{ #category : 'private' }
+RiRepository >> withIceCommitWalkDo: aBlock [
+	"Evaluate aBlock with a new IceCommitWalk, then close the walk even if the block fails, so its libgit2 revwalk is freed without waiting for the garbage collector."
+
+	| walk |
+	walk := self newIceCommitWalk.
+	^ [ aBlock value: walk ] ensure: [ walk close ]
 ]

@@ -51,7 +51,7 @@ RiPullRequest >> commits [
 
 	| walk riCommits riCommitByIceCommit |
 	self fetchHead.
-	
+
 	walk := self riRepository iceRepository newCommitWalk.
 	walk revwalk
 		beSortedByCommitTime;
@@ -63,13 +63,14 @@ RiPullRequest >> commits [
 	riCommitByIceCommit := Dictionary new.
 	riCommitByIceCommit at: self mergeBaseCommit put: (RiCommit repository: self riRepository iceGitCommit: self mergeBaseCommit).
 	riCommits := OrderedCollection new.
-	
-	"First we create all ri commits"
-	walk commitsDo: [ :iceCommit |
-			| riCommit |
-			riCommit := RiCommit repository: self riRepository iceGitCommit: iceCommit.
-			riCommitByIceCommit at: iceCommit put: riCommit.
-			riCommits add: riCommit ].
+
+	"First we create all ri commits, then close the walk even if one of them fails"
+	[
+		walk commitsDo: [ :iceCommit |
+				| riCommit |
+				riCommit := RiCommit repository: self riRepository iceGitCommit: iceCommit.
+				riCommitByIceCommit at: iceCommit put: riCommit.
+				riCommits add: riCommit ] ] ensure: [ walk close ].
 
 	"Then we associate the ancestors"
 	riCommits do: [ :riCommit |
