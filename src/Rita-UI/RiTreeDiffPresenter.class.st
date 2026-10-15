@@ -104,14 +104,16 @@ RiTreeDiffPresenter >> doExpandWithAllChildren [
 
 { #category : 'expand/collapse' }
 RiTreeDiffPresenter >> doInitialTreeExpansion [
-	"We expand the nodes we saved as expanded in a single pass: the tree refreshes and notifies #whenExpandChangedDo: handlers only once."
+	"We expand the nodes we saved as expanded in a single pass: the tree refreshes and notifies #whenExpandChangedDo: handlers only once. The index path of a node is computed from its parents, and the children of each parent are read once: searching the tree for each node is quadratic. Nodes that are not shown in the tree (the root, or a node whose ancestor is not shown) are ignored."
 
-	| paths |
+	| paths childrenByParent |
 	paths := OrderedCollection new.
+	childrenByParent := IdentityDictionary new.
 	self expandedIceNodes do: [ :each |
-			[ paths add: (treeTable selection pathOf: each) ]
-				on: NotFound
-				do: [ "If a node is not in the list, we just ignore it" ] ].
+			each hasParent ifTrue: [
+					| indexPath |
+					indexPath := each withAllParentNodes collect: [ :node | (childrenByParent at: node parent ifAbsentPut: [ node parent children asArray ]) identityIndexOf: node ].
+					(indexPath includes: 0) ifFalse: [ paths add: indexPath ] ] ].
 	treeTable expandPaths: paths
 ]
 
