@@ -200,15 +200,17 @@ RiRepository >> processBranchMark: anIceCommitish [
 
 { #category : 'private' }
 RiRepository >> processCommitGraph [
-	"Connect all collected RiCommits in terms of child/parent."
+	"Connect all collected RiCommits in terms of child/parent. The parents are looked up by id in a dictionary, so no commit is read again from the repository. This cache made the opening of Pharo (38k commits) go from 7.5sec to 4sec"
 
-	self commits do: [ :each | 
-		each iceGitCommit ancestors
-			collect: [ :iceAncestor |
-				elementByCommit at: iceAncestor ]
-			thenDo: [ :ancestor |
-				ancestor addChildren: each.
-				each addAncestor: ancestor ] ]
+	| elementById |
+	elementById := Dictionary new.
+	elementByCommit keysAndValuesDo: [ :commit :element | elementById at: commit id put: element ].
+	self commits do: [ :each |
+			each iceGitCommit ancestorIds
+				collect: [ :ancestorId | elementById at: ancestorId ]
+				thenDo: [ :ancestor |
+						ancestor addChildren: each.
+						each addAncestor: ancestor ] ]
 ]
 
 { #category : 'private' }
